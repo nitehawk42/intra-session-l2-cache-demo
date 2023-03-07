@@ -2,15 +2,15 @@ package com.example.demo;
 
 import com.example.demo.model.Child;
 import com.example.demo.model.Parent;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.Root;
-import jakarta.transaction.Transactional;
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Join;
+import javax.persistence.criteria.Root;
+import javax.transaction.Transactional;
 import org.hibernate.Session;
-import org.hibernate.jpa.AvailableHints;
+import org.hibernate.annotations.QueryHints;
 import org.hibernate.query.Query;
 import org.hibernate.stat.CacheRegionStatistics;
 import org.hibernate.stat.Statistics;
@@ -173,7 +173,7 @@ class FullTests {
 				cb.equal(parentAlias.get("name"), "p1")
 		);
 		List<Child> childList1 = entityManager.createQuery(cq)
-				.setHint(AvailableHints.HINT_CACHEABLE, true)
+				.setHint(QueryHints.CACHEABLE, true)
 				.getResultList();
 
 		assertThat(childList1).hasSize(1);
@@ -200,7 +200,7 @@ class FullTests {
 		Logger logger = LoggerFactory.getLogger(this.getClass().getName() + ".readCriteriaId()");
 		Session session = entityManager.unwrap(Session.class);
 
-		Query query1 = session.createQuery("from Parent p where p.name = 'p1'", Child.class);
+		Query query1 = session.createQuery("from Parent p where p.name = 'p1'", Parent.class);
 		Parent p1 = (Parent) query1.getResultList().get(0);
 		assertThat(p1).isNotNull();
 
@@ -212,7 +212,7 @@ class FullTests {
 				cb.equal(childAlias.get("parent"), p1)
 		);
 		List<Child> childList1 = entityManager.createQuery(cq)
-				.setHint(AvailableHints.HINT_CACHEABLE, true)
+				.setHint(QueryHints.CACHEABLE, true)
 				.getResultList();
 		assertThat(childList1).hasSize(1);
 
