@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration>
+
+	<appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+		<layout class="ch.qos.logback.classic.PatternLayout">
+			<Pattern>%d %-5p [%t] %c: %mdc{facility}%m %n</Pattern>
+		</layout>
+	</appender>
+
+	<root level="DEBUG">
+		<appender-ref ref="stdout" />
+	</root>
+
+	<logger name="org.hibernate.SQL">
+		<level value="DEBUG" />
+	</logger>
+
+</configuration>
