@@ -200,8 +200,8 @@ class FullTests {
 		Logger logger = LoggerFactory.getLogger(this.getClass().getName() + ".readCriteriaId()");
 		Session session = entityManager.unwrap(Session.class);
 
-		Query query1 = session.createQuery("from Parent p where p.name = 'p1'", Child.class);
-		Parent p1 = (Parent) query1.getResultList().get(0);
+		Query<Parent> query1 = session.createQuery("from Parent p where p.name = 'p1'", Parent.class);
+		Parent p1 = query1.getResultList().get(0);
 		assertThat(p1).isNotNull();
 
 		CriteriaBuilder cb = entityManager.getCriteriaBuilder();
