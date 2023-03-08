@@ -18,12 +18,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @Transactional
-public class SimpleTests {
+public class HibernateTests {
 	@PersistenceContext
 	private EntityManager entityManager;
 
@@ -31,77 +33,74 @@ public class SimpleTests {
 	@Order(1)
 	@Rollback(false)
 	public void setup() {
-		Parent p1 = new Parent("p1");
-		entityManager.persist(p1);
+		Parent p = new Parent("John");
+		entityManager.persist(p);
 
-		Child c1 = new Child("c1", p1);
-		entityManager.persist(c1);
-
-		Parent p2 = new Parent("p2");
-		entityManager.persist(p2);
-
-		Child c2 = new Child("c2", p2);
-		entityManager.persist(c2);
+		Child c = new Child("Alex", p);
+		entityManager.persist(c);
 	}
 
 	@Test
 	@Order(20)
-	public void readObjectHql1() {
+	public void queryByObjectParameter_readFromDatabase() {
 		resetSecondLevelCache();
-		readObjectHql();
+		queryByObjectParameter();
 	}
 
 	@Test
 	@Order(21)
-	public void readObjectHql2() {
-		readObjectHql();
-		assertThat(getSecondLevelHitCount()).isEqualTo(1L); // querying by object results in a cache miss every time
+	public void queryByObjectParameter_readFromL2Cache() {
+		queryByObjectParameter();
+
+		// querying by object results in a cache miss every time in Hibernate 6.1.7
+		// This succeeds in Hibernate 5.6.15
+		assertThat(getSecondLevelHitCount()).isEqualTo(1L);
 	}
 
-	private void readObjectHql() {
+	private void queryByObjectParameter() {
 		Logger logger = LoggerFactory.getLogger(this.getClass().getName() + ".readObjectHql()");
 		Session session = entityManager.unwrap(Session.class);
 
-		Query<Parent> query1 = session.createQuery("from Parent p where p.name = 'p1'", Parent.class);
-		Parent p1 = query1.getResultList().get(0);
-		assertThat(p1).isNotNull();
+		Query<Parent> queryParent = session.createQuery("from Parent p where p.name = 'John'", Parent.class);
+		List<Parent> p = queryParent.getResultList();
+		assertThat(p).hasSize(1);
 
-		Query<Child> query2 = session.createQuery("from Child c where c.parent = ?1", Child.class);
-		query2.setParameter(1, p1);
-		query2.setCacheable(true);
-		Child c1 = query2.getResultList().get(0);
-		assertThat(c1).isNotNull();
+		Query<Child> queryChildren = session.createQuery("from Child c where c.parent = ?1", Child.class);
+		queryChildren.setParameter(1, p.get(0));
+		queryChildren.setCacheable(true);
+		List<Child> c = queryChildren.getResultList();
+		assertThat(c).hasSize(1);
 
 		logger.debug("L2 hit count {}", getSecondLevelHitCount());
 	}
 
 	@Test
 	@Order(30)
-	public void readHqlId1() {
+	public void queryByIdParameter_readFromDatabase() {
 		resetSecondLevelCache();
-		readHqlId();
+		queryByIdParameter();
 	}
 
 	@Test
 	@Order(31)
-	public void readHqlId2() {
-		readHqlId();
+	public void queryByIdParameter_readFromL2Cache() {
+		queryByIdParameter();
 		assertThat(getSecondLevelHitCount()).isEqualTo(1L); // querying by id correctly reads from the cache
 	}
 
-	private void readHqlId() {
+	private void queryByIdParameter() {
 		Logger logger = LoggerFactory.getLogger(this.getClass().getName() + ".readHqlId()");
 		Session session = entityManager.unwrap(Session.class);
 
-		Query<Parent> query1 = session.createQuery("from Parent p where p.name = 'p1'", Parent.class);
-		Parent p1 = query1.getResultList().get(0);
-		assertThat(p1).isNotNull();
+		Query<Parent> queryParent = session.createQuery("from Parent p where p.name = 'John'", Parent.class);
+		List<Parent> p = queryParent.getResultList();
+		assertThat(p).hasSize(1);
 
-		Query<Child> query2 = session.createQuery("from Child c where c.parent.id = ?1", Child.class);
-		query2.setParameter(1, p1.getId());
-		query2.setCacheable(true);
-		Child c1 = query2.getResultList().get(0);
-		assertThat(c1).isNotNull();
+		Query<Child> queryChildren = session.createQuery("from Child c where c.parent.id = ?1", Child.class);
+		queryChildren.setParameter(1, p.get(0).getId());
+		queryChildren.setCacheable(true);
+		List<Child> c = queryChildren.getResultList();
+		assertThat(c).hasSize(1);
 
 		logger.debug("L2 hit count {}", getSecondLevelHitCount());
 	}
@@ -110,13 +109,12 @@ public class SimpleTests {
 		Session session = entityManager.unwrap(Session.class);
 		session.getSessionFactory().getCache().evictQueryRegion("default-query-results-region");
 		session.getSessionFactory().getStatistics().clear();
-
 	}
 
 	private long getSecondLevelHitCount() {
 		Session session = entityManager.unwrap(Session.class);
 		Statistics stats = session.getSessionFactory().getStatistics();
-		CacheRegionStatistics stats2L = stats.getDomainDataRegionStatistics("default-query-results-region");
-		return stats2L.getHitCount();
+		CacheRegionStatistics regionStats = stats.getDomainDataRegionStatistics("default-query-results-region");
+		return regionStats.getHitCount();
 	}
 }
