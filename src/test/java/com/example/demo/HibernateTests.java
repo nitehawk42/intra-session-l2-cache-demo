@@ -52,13 +52,13 @@ public class HibernateTests {
 	public void queryByObjectParameter_readFromL2Cache() {
 		queryByObjectParameter();
 
-		// querying by object results in a cache miss every time in Hibernate 6.1.7
-		// This succeeds in Hibernate 5.6.15
+		// This fails because querying by object results in a cache miss every time in Hibernate 6.1.7.
+		// This succeeds in Hibernate 5.6.15.
 		assertThat(getSecondLevelHitCount()).isEqualTo(1L);
 	}
 
 	private void queryByObjectParameter() {
-		Logger logger = LoggerFactory.getLogger(this.getClass().getName() + ".readObjectHql()");
+		Logger logger = LoggerFactory.getLogger(this.getClass().getName() + ".queryByObjectParameter()");
 		Session session = entityManager.unwrap(Session.class);
 
 		Query<Parent> queryParent = session.createQuery("from Parent p where p.name = 'John'", Parent.class);
@@ -71,7 +71,7 @@ public class HibernateTests {
 		List<Child> c = queryChildren.getResultList();
 		assertThat(c).hasSize(1);
 
-		logger.debug("L2 hit count {}", getSecondLevelHitCount());
+		logger.debug("L2 cache hit count: {}", getSecondLevelHitCount());
 	}
 
 	@Test
@@ -89,7 +89,7 @@ public class HibernateTests {
 	}
 
 	private void queryByIdParameter() {
-		Logger logger = LoggerFactory.getLogger(this.getClass().getName() + ".readHqlId()");
+		Logger logger = LoggerFactory.getLogger(this.getClass().getName() + ".queryByIdParameter()");
 		Session session = entityManager.unwrap(Session.class);
 
 		Query<Parent> queryParent = session.createQuery("from Parent p where p.name = 'John'", Parent.class);
